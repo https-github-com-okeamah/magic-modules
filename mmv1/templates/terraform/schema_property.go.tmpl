@@ -27,9 +27,6 @@
 {{ if .DefaultFromApi -}}
 	Computed: true,
 	Optional: true,
-	{{ if .SchemaConfigModeAttr -}}
-	ConfigMode: schema.SchemaConfigModeAttr,
-	{{ end -}}
 {{ else if .Required -}}
   Required: true,
 {{ else if .Output -}}
@@ -43,7 +40,7 @@
 {{ if .IsForceNew -}}
   ForceNew: true,
 {{ end -}}
-{{ if .Validation -}}
+{{ if and (not .Output) .Validation -}}
 	{{ if .Validation.Regex -}}
   ValidateFunc: verify.ValidateRegexp(`{{ .Validation.Regex -}}`),
 	{{ else if .Validation.Function -}}
@@ -106,6 +103,7 @@ Default value: {{ .ItemType.DefaultValue -}}
   {{ else if eq .ItemType.Type "String" -}}
       Elem: &schema.Schema{
         Type: schema.Type{{ .ItemTypeClass -}},
+        {{ template "ItemValidation" . -}}
       },
   {{ else if eq .ItemType.Type "Enum" -}}
       Elem: &schema.Schema{
@@ -124,6 +122,7 @@ Default value: {{ .ItemType.DefaultValue -}}
     {{ else -}}
         Type: {{ .TFType .ItemType.Type }},
     {{ end -}}
+    {{ template "ItemValidation" . -}}
       },
   {{ end -}}
   {{ if .IsSet -}}
@@ -179,4 +178,15 @@ Default value: {{ .ItemType.DefaultValue -}}
 {{ end -}}
 },
 {{- end -}}
+{{- end -}}
+{{- define "ItemValidation" -}}
+  {{ if not .Output -}}
+    {{ if .ItemValidation -}}
+      {{ if .ItemValidation.Regex -}}
+      ValidateFunc: verify.ValidateRegexp(`{{ .ItemValidation.Regex -}}`),
+      {{ else if .ItemValidation.Function -}}
+      ValidateFunc: {{ .ItemValidation.Function -}},
+      {{ end  -}}
+    {{ end -}}
+  {{- end }}
 {{- end -}}
